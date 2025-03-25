@@ -10,93 +10,63 @@ class Controller(object):
         self._view = view
         self._model = Model()
 
-    def reset(self, e):
+    def getNumMax(self):
+        return self._model._numMax
+
+    def getTentMax(self):
+        return self._model._tentMax
+
+    def reset(self, e): #e --> parametro evento che ha senso quando premi il metodo on_click
         self._model.reset()
-        self._view._txtOutT.value = self._model.T
-        self._view._lv.controls.clear()
-        self._view._btnPlay.disabled = False
-        self._view._txtIn.disabled = False
-        self._view._lv.controls.append(
-            ft.Text("Indovina a quale numero sto pensando!"))
+        self._view.txtOutTent.value = self._model._tent
+        self._view._lv.controls.clear() #pulisi l'interfaccia e tutte le vecchie cose scritte
+        self._view._lv.controls.append( ft.Text("Indovina a quale numero sto pensando!"))
 
-        self._view._pb.value = self._model.T / self._model.TMax
-        self._view._txtOutNMax.value = self._model.NMax
-
+        self._view.btnPlay.disabled = False
+        self._view.txtIn.disabled = False  #manca ancora il numero segreto
         self._view.update()
 
     def play(self, e):
-        tentativoStr = self._view._txtIn.value
-        self._view._txtIn.value = ""
+        tentativoStr = self._view.txtIn.value
+        self._view.txtIn.value = "" #cosi non rimane fisso nello schermo quale numero che hai scritto
+        self._view.txtOutTent.value = self._model._tent-1
 
         if tentativoStr == "":
-            self._view._lv.controls.append(
-                ft.Text("Attenzione! inserisci un valore numerico da testare.",
-                        color="red"))
+            self._view._lv.controls.append( ft.Text("Attnezione! Inserisci un valore numerico da testare", color="red"))
             self._view.update()
-            return
+            return #non ha senso andare avanti
 
         try:
-            tentativoInt = int(tentativoStr)
+            tentativoInt = int(tentativoStr) #può fallire nel caso ci sia un num decimale ad es
         except ValueError:
-            self._view._lv.controls.append(
-                ft.Text("Attenzione, valore inserito non è un intero.",
-                        color="red")
-            )
+            self._view._lv.controls.append( ft.Text("Attenzione! Il valore inserito non è un intero, riprovare!", color="red"))
+            return
+
+        risultato = self._model.play(tentativoInt) #vale 1,-1,0,2
+        if risultato==0:
+            self._view._lv.controls.append( ft.Text(f"Fantastico, hai vinto, il segreto era {self._model._segreto}", color="green"))
+            self._view.btnPlay.disabled = True
+            self._view.txtIn.disabled = True
             self._view.update()
             return
 
-        if tentativoInt < 0 or tentativoInt > self._model.NMax:
-            self._view._lv.controls.append(
-                ft.Text("Attenzione, valore inserito non è compreso tra 0 e "
-                        f"{self._model.NMax}.",
-                        color="red")
-            )
+        elif risultato==2:
+            self._view._lv.controls.append( ft.Text(f"Mi dispiace, hai finito le vite, il segreto era {self._model._segreto}",color="black"))
+            self._view.btnPlay.disabled = True
+            self._view.txtIn.disabled = True
             self._view.update()
             return
 
-        self._view._txtOutT.value = self._model.T - 1
-        self._view._pb.value = (self._model.T - 1) / self._model.TMax
+        elif risultato == -1:
+            self._view._lv.controls.append( ft.Text(f"Ci sei quasi, il segreto è più piccolo di {self._view.txtIn.value}", color="black"))
+            self._view.update()
+            #no return perchè devi continuare a giocare
 
-        res = self._model.play(tentativoInt)
-
-        if res == 0: #ho vinto
-            self._view._lv.controls.append(
-                ft.Text(f"Fantastico! hai vinto, il "
-                        f"segreto era {tentativoInt}",
-                        color="green"))
-            self._view._btnPlay.disabled = True
-            self._view._txtIn.disabled = True
-            self._view.update()
-            return
-        elif res == 2: # ho finito tutte le vite
-            self._view._lv.controls.append(
-                ft.Text(f"Mi dispiace, hai finito le vite. "
-                        f"Il segreto era: {self._model.segreto}")
-            )
-            self._view._btnPlay.disabled = True
-            self._view._txtIn.disabled = True
-            self._view.update()
-            return
-        elif res == -1: # il mio segreto è più piccolo
-            self._view._lv.controls.append(
-                ft.Text(f"Il segreto è più piccolo di {tentativoInt}.")
-            )
-            self._view.update()
-        else: #il segreto è più grande
-            self._view._lv.controls.append(ft.Text(
-                f"Il segreto è più grande di {tentativoInt}"
-            ))
+        else: #risultato=1
+            self._view._lv.controls.append( ft.Text(f"Ci sei quasi, il segreto è più grande di {self._view.txtIn.value}", color="black"))
             self._view.update()
 
-    def getNMax(self):
-        return self._model.NMax
 
-    def getTMax(self):
-        return self._model.TMax
 
-    def setDifficulty(self, e):
-        self._model.NMax = int(self._view._sl.value)
-        self._model.TMax = int(log2(self._model.NMax))
-        self._view._txtOutNMax.value = self._model.NMax
-        self._view.update()
-        print(self._model.NMax, "Nmax")
+#non va a considerare l'utlimo caso
+
